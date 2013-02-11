@@ -61,7 +61,7 @@
                                   (num (interp-wae named-expr))))]
     [id (v)(error 'interp-wae "free identifier")]))
 
-;interpreter
+;evaluator
 
 (define eval-wae
   (lambda (Sexp)
