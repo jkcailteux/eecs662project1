@@ -23,6 +23,18 @@
     (cond ((empty? binop)(error 'get-binop "Bad Operator"))
           (else (if (symbol=? type (first (first binop))) (cadar binop)
                     (get-binop type (cdr binop)))))))
+;binding check
+(define binding?
+  (lambda (expr)
+    (and (symbol? (first expr)) 
+         (WAEE? (second expr)))))
+       
+;list of binding check
+(define lob?
+  (lambda (expr)
+    (cond ((empty? expr) #t)
+          (else (and (binding? (car expr)) 
+                     (lob? (cdr expr)))))))
 
 ;Parser
 (define (parse-waee sexp)
@@ -94,4 +106,4 @@
 (test (eval-waee '(with (x (+ 1 2)) (+ x x))) 6)
 (test (eval-waee '(with (y 7) (with (x (- 10 y)) x))) 3)
 (test (eval-waee '(with (y (- 2 1)) (with (x (+ y 1))x))) 2)
-
+;(eval-waee '(with (x 5) (y 5) (+ x y)))
