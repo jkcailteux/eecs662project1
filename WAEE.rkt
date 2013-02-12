@@ -10,6 +10,7 @@
   )
 
 ;operators
+;list of lists of string operator pairs
 (define binop
   (list (list 'add +)
         (list 'sub -)
@@ -18,11 +19,16 @@
         ))
 
 ;get operator
+;turns operator symbols into operator text by looking up binop type
 (define get-binop
   (lambda (type binop)
-    (cond ((empty? binop)(error 'get-binop "Bad Operator"))
-          (else (if (symbol=? type (first (first binop))) (cadar binop)
-                    (get-binop type (cdr binop)))))))
+    (cond ((empty? binop)
+           (error 'get-binop "Bad Operator"))
+          (else (if (symbol=? type (first (first binop))) 
+                    (cadar binop)(get-binop type (cdr binop)))
+                )
+          )))
+
 ;binding check
 (define binding?
   (lambda (expr)
@@ -37,6 +43,7 @@
                      (lob? (cdr expr)))))))
 
 ;Parser
+;takes expression and turns into WAEE structure
 (define (parse-waee sexp)
   (cond
     [(number? sexp) (num sexp)]
@@ -51,10 +58,15 @@
                  (parse-waee (third sexp)))]
        [(/) (op 'div (parse-waee (second sexp))
                  (parse-waee (third sexp)))]
-       [(with) (expand-with (second sexp)(third sexp))])]
-     [else (error 'parse-waee "Parse error")]))
+       [(with) (expand-with (second sexp)(third sexp))]
+       )
+     ]
+     [else (error 'parse-waee "Parse error")]
+     )
+  )
 
 ;interpreter
+;turn WAEE structure into scheme and executes
 (define (interp-waee expr)
   (type-case WAEE expr
     [num (n) n]
@@ -66,6 +78,7 @@
     ))
 
 ;substitution
+;takes an expression, replaces instances of sub-id with val
 (define (subst expr sub-id val)
   (type-case WAEE expr
     [num (n) expr]
@@ -81,17 +94,28 @@
     ))
 
 ;expand-with
+;takes string starting after with
+;checks if single binding or multiple
+;if single, return basic with
+;if multiple, go through list of bindings and send to parser
+;one binding at a time with expr
 (define (expand-with binding-instance expr)
   (cond
     ((empty? binding-instance) (parse-waee expr))
+    ;for single binding instance
     ((symbol? (first binding-instance))
      (with (first binding-instance)
-           (parse-waee (second binding-instance))(parse-waee expr)))
+           (parse-waee (second binding-instance))(parse-waee expr))
+     )
+    ;for multiple binding instances
     (else (with (first (first binding-instance)) 
                 (parse-waee (cadar binding-instance)) 
-                (expand-with (cdr binding-instance) expr)))))  
+                (expand-with (cdr binding-instance) expr))
+          ))
+  )  
 
 ;evaluator
+;take expression, give to parse, take WAEE structure and give to interpreter
 (define eval-waee
   (lambda (Sexp)
     (interp-waee (parse-waee Sexp))))
@@ -106,4 +130,5 @@
 (test (eval-waee '(with (x (+ 1 2)) (+ x x))) 6)
 (test (eval-waee '(with (y 7) (with (x (- 10 y)) x))) 3)
 (test (eval-waee '(with (y (- 2 1)) (with (x (+ y 1))x))) 2)
-;(eval-waee '(with (x 5) (y 5) (+ x y)))
+(test (eval-waee '(with ((x 5) (y 5)) (+ x y))) 10)
+(test (eval-waee '(with ((x 5) (y 5) (z 5)) (+ (+ x y) z))) 15)
